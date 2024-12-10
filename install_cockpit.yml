@@ -1,0 +1,60 @@
+---
+- name: Install and Configure Cockpit
+  hosts: all
+  become: yes
+  tasks:
+    - name: Update the package manager cache
+      ansible.builtin.shell: |
+        if command -v apt &>/dev/null; then
+          apt update -y
+        elif command -v yum &>/dev/null; then
+          yum update -y
+        elif command -v dnf &>/dev/null; then
+          dnf update -y
+        else
+          echo 'Unsupported package manager' && exit 1
+        fi
+      register: update_result
+      failed_when: update_result.rc != 0
+
+    - name: Install Cockpit
+      ansible.builtin.shell: |
+        if command -v apt &>/dev/null; then
+          apt install cockpit -y
+        elif command -v yum &>/dev/null; then
+          yum install cockpit -y
+        elif command -v dnf &>/dev/null; then
+          dnf install cockpit -y
+        else
+          echo 'Unsupported package manager' && exit 1
+        fi
+      register: install_result
+      failed_when: install_result.rc != 0
+
+    - name: Enable and start Cockpit service
+      ansible.builtin.service:
+        name: cockpit
+        enabled: yes
+        state: started
+
+    - name: Ensure /etc/cockpit/disallowed-users exists
+      ansible.builtin.file:
+        path: /etc/cockpit/disallowed-users
+        state: touch
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Remove 'root' from /etc/cockpit/disallowed-users
+      ansible.builtin.lineinfile:
+        path: /etc/cockpit/disallowed-users
+        regexp: '^root$'
+        state: absent
+
+    - name: Verify Cockpit installation and configuration
+      ansible.builtin.shell: systemctl status cockpit
+      register: cockpit_status
+
+    - name: Display Cockpit status
+      ansible.builtin.debug:
+        msg: "{{ cockpit_status.stdout }}"
