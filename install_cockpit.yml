@@ -1,5 +1,5 @@
 ---
-- name: Install and Configure Cockpit with Additional Modules
+- name: Install and Configure Cockpit with Additional Modules and Network Fix
   hosts: all
   become: yes
   tasks:
@@ -76,10 +76,20 @@
       register: navigator_install
       failed_when: navigator_install.rc != 0
 
-    - name: Verify Cockpit installation and configuration
-      ansible.builtin.shell: systemctl status cockpit
-      register: cockpit_status
+    - name: Create NetworkManager configuration file
+      ansible.builtin.copy:
+        dest: /etc/NetworkManager/conf.d/10-globally-managed-devices.conf
+        content: |
+          [keyfile]
+          unmanaged-devices=none
+        owner: root
+        group: root
+        mode: '0644'
 
-    - name: Display Cockpit status
-      ansible.builtin.debug:
-        msg: "{{ cockpit_status.stdout }}"
+    - name: Add dummy network interface
+      ansible.builtin.command:
+        cmd: nmcli con add type dummy con-name fake ifname fake0 ip4 1.2.3.4/24 gw4 1.2.3.1
+
+    - name: Reboot the server
+      ansible.builtin.reboot:
+        reboot_timeout: 300
