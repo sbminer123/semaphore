@@ -1,0 +1,15 @@
+---
+- name: Update and Upgrade System
+  hosts: all
+  become: true
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Upgrade all packages
+      apt:
+        upgrade: dist
+
+    - name: Autoremove unnecessary packages
+      command: apt autoremove -y
