@@ -1,6 +1,6 @@
 ---
 - name: Update Zoraxy to the latest version
-  hosts: zoraxy_server
+  hosts: all
   become: true
 
   tasks:
