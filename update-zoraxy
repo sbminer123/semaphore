@@ -6,10 +6,10 @@
   tasks:
     - name: Fetch the latest Zoraxy release version
       shell: |
-        curl -s https://api.github.com/repos/tobychui/zoraxy/releases/latest \
-        | grep "tag_name" \
-        | cut -d '"' -f 4
+        curl -s https://api.github.com/repos/tobychui/zoraxy/releases/latest | jq -r ".tag_name"
       register: latest_version
+      failed_when: latest_version.stdout == ""  # Ensure we fail if no version is fetched
+      changed_when: false
 
     - name: Set architecture variable
       shell: |
@@ -23,11 +23,7 @@
             exit 1
         fi
       register: architecture
-
-    - name: Check for unsupported architecture
-      fail:
-        msg: "Unsupported architecture: {{ architecture.stdout }}"
-      when: architecture.stdout == "Unsupported architecture"
+      failed_when: architecture.stdout == "Unsupported architecture"
 
     - name: Download the latest Zoraxy binary
       get_url:
