@@ -8,8 +8,10 @@
       shell: |
         curl -s https://api.github.com/repos/tobychui/zoraxy/releases/latest | jq -r ".tag_name"
       register: latest_version
-      failed_when: latest_version.stdout == ""  # Ensure we fail if no version is fetched
       changed_when: false
+      failed_when: latest_version.stdout == ""  # Fail if no version is fetched
+      debug:
+        var: latest_version.stdout
 
     - name: Set architecture variable
       shell: |
@@ -24,6 +26,8 @@
         fi
       register: architecture
       failed_when: architecture.stdout == "Unsupported architecture"
+      debug:
+        var: architecture.stdout
 
     - name: Download the latest Zoraxy binary
       get_url:
