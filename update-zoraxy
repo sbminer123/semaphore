@@ -21,36 +21,37 @@
 
     - name: Fetch the latest Zoraxy release version
       shell: |
-        echo "{{ github_api_response.stdout }}" | jq -r ".tag_name"
+        echo '{{ github_api_response.stdout }}' | jq -r '.tag_name'
       register: latest_version
-      failed_when: latest_version.stdout == ""
+      failed_when: latest_version.stdout == "" or latest_version.rc != 0
       changed_when: false
 
     - name: Debug latest version
       debug:
-        var: latest_version.stdout
+        msg: "Latest Zoraxy version: {{ latest_version.stdout }}"
 
     - name: Set architecture variable
       shell: |
         ARCH=$(uname -m)
-        if [ "$ARCH" == "x86_64" ]; then
-            echo "amd64"
-        elif [ "$ARCH" == "aarch64" ]; then
-            echo "arm64"
+        if [ "$ARCH" = "x86_64" ]; then
+          echo "amd64"
+        elif [ "$ARCH" = "aarch64" ]; then
+          echo "arm64"
         else
-            echo "Unsupported architecture"
-            exit 1
+          echo "Unsupported architecture"
+          exit 1
         fi
       register: architecture
-      failed_when: architecture.stdout == "Unsupported architecture"
+      failed_when: "'Unsupported architecture' in architecture.stdout"
+      changed_when: false
 
     - name: Debug architecture
       debug:
-        var: architecture.stdout
+        msg: "System architecture: {{ architecture.stdout }}"
 
     - name: Download the latest Zoraxy binary
       get_url:
-        url: "https://github.com/tobychui/zoraxy/releases/download/{{ latest_version.stdout }}/zoraxy-linux-{{ architecture.stdout }}"
+        url: "https://github.com/tobychui/zoraxy/releases/download/{{ latest_version.stdout }}/zoraxy_linux_{{ architecture.stdout }}"
         dest: /usr/local/bin/zoraxy
         mode: '0755'
       when: latest_version.stdout != "" and architecture.stdout != ""
