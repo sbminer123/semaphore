@@ -8,8 +8,10 @@
       shell: |
         curl -s https://api.github.com/repos/tobychui/zoraxy/releases/latest | jq -r ".tag_name"
       register: latest_version
-      changed_when: false
       failed_when: latest_version.stdout == ""  # Fail if no version is fetched
+      changed_when: false
+
+    - name: Debug latest version
       debug:
         var: latest_version.stdout
 
@@ -26,6 +28,8 @@
         fi
       register: architecture
       failed_when: architecture.stdout == "Unsupported architecture"
+
+    - name: Debug architecture
       debug:
         var: architecture.stdout
 
