@@ -4,10 +4,16 @@
   become: true
 
   tasks:
+    - name: Ensure jq is installed
+      package:
+        name: jq
+        state: present
+
     - name: Verify connectivity to GitHub API
       shell: curl -s https://api.github.com/repos/tobychui/zoraxy/releases/latest
       register: github_api_response
       changed_when: false
+      failed_when: github_api_response.rc != 0
 
     - name: Debug GitHub API response
       debug:
@@ -15,7 +21,7 @@
 
     - name: Fetch the latest Zoraxy release version
       shell: |
-        curl -s https://api.github.com/repos/tobychui/zoraxy/releases/latest | jq -r ".tag_name"
+        echo "{{ github_api_response.stdout }}" | jq -r ".tag_name"
       register: latest_version
       failed_when: latest_version.stdout == ""
       changed_when: false
@@ -23,11 +29,6 @@
     - name: Debug latest version
       debug:
         var: latest_version.stdout
-
-    - name: Ensure jq is installed
-      package:
-        name: jq
-        state: present
 
     - name: Set architecture variable
       shell: |
@@ -58,6 +59,7 @@
       service:
         name: zoraxy
         state: stopped
+      ignore_errors: true
 
     - name: Start Zoraxy service
       service:
@@ -67,6 +69,7 @@
     - name: Verify Zoraxy version
       command: zoraxy --version
       register: zoraxy_version
+      failed_when: zoraxy_version.rc != 0
 
     - name: Display the installed Zoraxy version
       debug:
