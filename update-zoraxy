@@ -1,0 +1,54 @@
+---
+- name: Update Zoraxy to the latest version
+  hosts: zoraxy_server
+  become: true
+
+  tasks:
+    - name: Fetch the latest Zoraxy release version
+      shell: |
+        curl -s https://api.github.com/repos/tobychui/zoraxy/releases/latest \
+        | grep "tag_name" \
+        | cut -d '"' -f 4
+      register: latest_version
+
+    - name: Set architecture variable
+      shell: |
+        ARCH=$(uname -m)
+        if [ "$ARCH" == "x86_64" ]; then
+            echo "amd64"
+        elif [ "$ARCH" == "aarch64" ]; then
+            echo "arm64"
+        else
+            echo "Unsupported architecture"
+            exit 1
+        fi
+      register: architecture
+
+    - name: Check for unsupported architecture
+      fail:
+        msg: "Unsupported architecture: {{ architecture.stdout }}"
+      when: architecture.stdout == "Unsupported architecture"
+
+    - name: Download the latest Zoraxy binary
+      get_url:
+        url: "https://github.com/tobychui/zoraxy/releases/download/{{ latest_version.stdout }}/zoraxy-linux-{{ architecture.stdout }}"
+        dest: /usr/local/bin/zoraxy
+        mode: '0755'
+
+    - name: Stop Zoraxy service
+      service:
+        name: zoraxy
+        state: stopped
+
+    - name: Start Zoraxy service
+      service:
+        name: zoraxy
+        state: started
+
+    - name: Verify Zoraxy version
+      command: zoraxy --version
+      register: zoraxy_version
+
+    - name: Display the installed Zoraxy version
+      debug:
+        msg: "Zoraxy updated to version: {{ zoraxy_version.stdout }}"
